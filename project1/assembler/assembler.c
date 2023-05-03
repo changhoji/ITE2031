@@ -309,13 +309,6 @@ int getBranchOffset(char *offsetField, int line) {
 	else {
 		res = findBranchAddress(offsetField) - (line + 1);
 		res &= (0b1111111111111111);
-
-		// printf("res(%d): ", res);
-		// for(int i = 0; i < 32; i++) {
-		// 	printf("%d", (res >> (32-i-1)) & 1);
-		// 	if((i+1)%4 ==0) printf(" ");
-		// }
-		// printf("\n");
 	}
 
 	return res;
@@ -338,8 +331,11 @@ int findBranchAddress(char *branchName) {
 }
 
 void freeBranchList(struct branch *cur) {
-	if (cur->next != NULL) {
-		freeBranchList(cur);
+	struct branch *prev;
+	while (cur->next != NULL) {
+		prev = cur;
+		cur = cur->next;
+		free(prev);
 	}
 	free(cur);
 }
