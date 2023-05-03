@@ -6,8 +6,20 @@
 
 #define MAXLINELENGTH 1000
 
+struct branch {
+	char name[7];
+	int address;
+	struct branch *next;
+} *head;
+
 int readAndParse(FILE *, char *, char *, char *, char *, char *);
 int isNumber(char *);
+int getBinaryOpcode(char *);
+int isValidRegister(char *);
+int getWordOffset(char *);
+int getBranchOffset(char *, int);
+int findBranchAddress(char *);
+void freeBranchList(struct branch *);
 
 int main(int argc, char *argv[]) 
 {
@@ -15,6 +27,11 @@ int main(int argc, char *argv[])
 	FILE *inFilePtr, *outFilePtr;
 	char label[MAXLINELENGTH], opcode[MAXLINELENGTH], arg0[MAXLINELENGTH], 
 			 arg1[MAXLINELENGTH], arg2[MAXLINELENGTH];
+	
+	head = (struct branch *)malloc(sizeof(struct branch));
+	strcpy(head->name, "dummy");
+	head->address = -1;
+	head->next = NULL;
 
 	if (argc != 3) {
 		printf("error: usage: %s <assembly-code-file> <machine-code-file>\n",
@@ -36,26 +53,133 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	/* here is an example for how to use readAndParse to read a line from
-		 inFilePtr */
-	if (!readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)) {
-		/* reached end of file */
-	}
+	// /* here is an example for how to use readAndParse to read a line from
+	// 	 inFilePtr */
+	// if (!readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)) {
+	// 	/* reached end of file */
+	// }
 
 	/* TODO: Phase-1 label calculation */
+	int line = 0;
+	struct branch *cur = head;
+	while (readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)) {
+		// set labels
+		if (strcmp(label, "")){ // add label to linked list
+			// create new branch node
+			struct branch *newNode = (struct branch*)malloc(sizeof(struct branch));
+			if(newNode == 0) {
+				printf("failed to malloc\n");
+				exit(1);
+			}
+			
+			strcpy(newNode->name, label);
+			newNode->address = line;
+			newNode->next = NULL;
+
+			cur->next = newNode;
+			cur = cur->next;
+		}
+
+		// increase line number
+		line++;
+	}
 
 	/* this is how to rewind the file ptr so that you start reading from the
 		 beginning of the file */
 	rewind(inFilePtr);
 
 	/* TODO: Phase-2 generate machine codes to outfile */
+	line = 0;
+	while (readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)) {
+		int res = 0;
+		int regA, regB, destReg, offsetField;
 
-	/* after doing a readAndParse, you may want to do the following to test the
-		 opcode */
-	if (!strcmp(opcode, "add")) {
-		/* do whatever you need to do for opcode "add" */
+		int bop = getBinaryOpcode(opcode);
+
+		res |= (bop << 22);
+
+		switch (bop) {
+			case 0b000:  // add
+			case 0b001:  // nor
+				if (!isValidRegister(arg0) || !isValidRegister(arg1) || !isValidRegister(arg2)) {
+					printf("invalid argument\n");
+					exit(1);
+				}
+
+				sscanf(arg0, "%d", &regA);
+				sscanf(arg1, "%d", &regB);
+				sscanf(arg2, "%d", &destReg);
+
+				res |= (regA << 19);
+				res |= (regB << 16);
+				res |= destReg;
+
+				break;
+				
+			case 0b010:  // lw
+			case 0b011:  // sw
+			case 0b100:  // beq
+				if (!isValidRegister(arg0) || !isValidRegister(arg1)) {
+					printf("invalid argument\n");
+					exit(1);
+				}
+
+				sscanf(arg0, "%d", &regA);
+				sscanf(arg1, "%d", &regB);
+
+				// printf("arg0: %d, arg1: %d\n", regA, regB);
+
+				if (bop <= 0b011) { // lw & sw
+					offsetField = getWordOffset(arg2);
+				}
+				else {
+					offsetField = getBranchOffset(arg2, line);
+				}
+
+				res |= (regA << 19);
+				res |= (regB << 16);
+				res |= offsetField;
+
+				break;
+
+			case 0b101:  // jalr
+				if (!isValidRegister(arg0) || !isValidRegister(arg1)) {
+					printf("invalid argument\n");
+					exit(1);
+				}
+
+				sscanf(arg0, "%d", &regA);
+				sscanf(arg1, "%d", &regB);
+
+				res |= (regA << 19);
+				res |= (regB << 16);
+
+				break;
+
+			case 0b110:  // halt
+			case 0b111:  // noop
+				break;
+
+			case 0b1000: // .fill
+				if (isNumber(arg0)) { //
+					sscanf(arg0, "%d", &res); 
+				}
+				else {
+					res = findBranchAddress(arg0);
+				}
+				break;
+
+			default:
+				printf("invalid opcode\n");
+				exit(1);
+		}
+
+		fprintf(outFilePtr, "%d\n", res);
+
+		line++;
 	}
-
+	
+	free(head);
 	if (inFilePtr) {
 		fclose(inFilePtr);
 	}
@@ -121,3 +245,101 @@ int isNumber(char *string)
 	return( (sscanf(string, "%d", &i)) == 1);
 }
 
+int getBinaryOpcode(char *opcode) {
+	if (!strcmp(opcode, "add")) return 0b000;
+	if (!strcmp(opcode, "nor")) return 0b001;
+	if (!strcmp(opcode, "lw")) return 0b010;
+	if (!strcmp(opcode, "sw")) return 0b011;
+	if (!strcmp(opcode, "beq")) return 0b100;
+	if (!strcmp(opcode, "jalr")) return 0b101;
+	if (!strcmp(opcode, "halt")) return 0b110;
+	if (!strcmp(opcode, "noop")) return 0b111;
+
+	if (!strcmp(opcode, ".fill")) return 0b1000;
+
+	printf("invalid opcode\n");
+	exit(1);
+}
+
+int isValidRegister(char *arg) {
+	if(!isNumber(arg)) {
+		printf("non-number register");
+		return 0;
+	}
+	int regNum;
+	sscanf(arg, "%d", &regNum);
+	
+	if (regNum < 0 || regNum >= 8) {
+		printf("register outside the range [0,7]");
+		return 0;
+	}
+
+	return 1;
+}
+
+int getWordOffset(char *offsetField) {
+	int res;
+
+	if (isNumber(offsetField)) {
+		// get numeric address value
+		sscanf(offsetField, "%d", &res);
+		if (res <= 0 || res > 65535) {
+			printf("offsetField don't fit in 16bit\n");
+			exit(1);
+		}
+	}
+	else {
+		res = findBranchAddress(offsetField);
+	}
+
+	return res;
+}
+
+int getBranchOffset(char *offsetField, int line) {
+	int res;
+
+	if (isNumber(offsetField)) {
+		// get numeric address value
+		sscanf(offsetField, "%d", &res);
+		if (res <= 0 || res > 65535) {
+			printf("offsetField don't fit in 16bit\n");
+			exit(1);
+		}
+	}
+	else {
+		res = findBranchAddress(offsetField) - (line + 1);
+		res &= (0b1111111111111111);
+
+		// printf("res(%d): ", res);
+		// for(int i = 0; i < 32; i++) {
+		// 	printf("%d", (res >> (32-i-1)) & 1);
+		// 	if((i+1)%4 ==0) printf(" ");
+		// }
+		// printf("\n");
+	}
+
+	return res;
+}
+
+int findBranchAddress(char *branchName) {
+	struct branch *cur = head->next;
+
+	while (1) {
+		if (!strcmp(cur->name, branchName)) {
+			return cur->address;
+		}
+
+		if (cur->next == NULL) break;
+		cur = cur->next;
+	}
+
+	printf("undefined label\n");
+	exit(1);
+}
+
+void freeBranchList(struct branch *cur) {
+	if (cur->next != NULL) {
+		freeBranchList(cur);
+	}
+	free(cur);
+}
