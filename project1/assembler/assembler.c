@@ -308,7 +308,7 @@ int getBranchOffset(char *offsetField, int line) {
 	}
 	else {
 		res = findBranchAddress(offsetField) - (line + 1);
-		res &= (0b1111111111111111);
+		res &= (0xffff);
 	}
 
 	return res;
