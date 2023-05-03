@@ -16,9 +16,11 @@ typedef struct stateStruct {
 
 void printState(stateType *);
 int convertNum(int num);
+void parseField(int, int *, int *, int *, int *);
 
 int main(int argc, char *argv[])
 {
+    int i;
     char line[MAXLINELENGTH];
     stateType state;
     FILE *filePtr;
@@ -47,6 +49,69 @@ int main(int argc, char *argv[])
     }
 
 		/* TODO: */
+
+    // initialize registers and pc
+    for (i = 0; i < NUMREGS; i++) {
+        state.reg[i] = 0;
+    }
+    state.pc = 0;
+    
+    // fetch and execute instructions
+    int instruction, opcode, regA, regB, destReg, offsetField;
+    int isHalted = 0, executeCnt = 0;
+
+    while (1) {
+        printState(&state);
+        // fetch and increase pc
+        instruction = state.mem[state.pc++]; // now pc has next instruction's address
+                                             
+        opcode = instruction >> 22;
+
+        parseField(instruction, &regA, &regB, &destReg, &offsetField);
+
+        switch (opcode) {
+            case 0b000: // add
+                state.reg[destReg] = state.reg[regA] + state.reg[regB];
+                break;
+            case 0b001: // nor
+                state.reg[destReg] = ~(state.reg[regA] | state.reg[regB]);
+                break;
+            case 0b010: // lw
+                state.reg[regB] = state.mem[state.reg[regA] + offsetField];
+                break;
+            case 0b011: // sw
+                state.mem[state.reg[regA] + offsetField] = state.reg[regB];
+                break;
+            case 0b100: // beq
+                if (state.reg[regA] == state.reg[regB]) { // branching
+                    state.pc += offsetField;
+                }
+                break;
+            case 0b101: // jalr
+                state.reg[regB] = state.pc;
+                state.pc = state.reg[regA];
+                break;
+            case 0b110: // halt
+                isHalted = 1;
+                break;
+            case 0b111: // noop
+                break;
+            default:
+                printf("invalid opcode\n");
+                exit(1);
+        }
+
+        executeCnt++;
+
+        // terminate program
+        if (isHalted) break;
+    }
+
+    printf("machine halted\n");
+    printf("total of %d instructions executed\n", executeCnt);
+    printf("final state of machine:\n");
+    printState(&state);
+
     return(0);
 }
 
@@ -73,4 +138,34 @@ int convertNum(int num)
 		num -= (1 << 16);
 	}
 	return (num);
+}
+
+void parseField(int instruction, int *regA, int *regB, int *destReg, int* offsetField) {
+    int opcode = instruction >> 22;
+
+    switch (opcode) {
+        case 0b000:
+        case 0b001:
+            *regA = (instruction >> 19) & 0b111;
+            *regB = (instruction >> 16) & 0b111;
+            *destReg = (instruction) & 0b111;
+            break;
+        case 0b010:
+        case 0b011:
+        case 0b100:
+            *regA = (instruction >> 19) & 0b111;
+            *regB = (instruction >> 16) & 0b111;
+            *offsetField = convertNum(instruction & 0xffff);
+            break;
+        case 0b101:
+            *regA = (instruction >> 19);
+            *regB = (instruction >> 16) & 0b111;
+            break;
+        case 0b110:
+        case 0b111:
+            break;
+        default:
+            printf("invalid opcode\n");
+            exit(1);
+    }
 }
