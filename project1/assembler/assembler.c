@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 		line++;
 	}
 	
-	free(head);
+	freeBranchList(head);
 	if (inFilePtr) {
 		fclose(inFilePtr);
 	}
