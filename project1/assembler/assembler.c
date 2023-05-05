@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 			 arg1[MAXLINELENGTH], arg2[MAXLINELENGTH];
 	
 	head = (struct branch *)malloc(sizeof(struct branch));
-	strcpy(head->name, "dummy");
+	strcpy(head->name, "");
 	head->address = -1;
 	head->next = NULL;
 
@@ -61,10 +61,23 @@ int main(int argc, char *argv[])
 
 	/* TODO: Phase-1 label calculation */
 	int line = 0;
-	struct branch *cur = head;
+	struct branch *cur;
 	while (readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)) {
 		// set labels
 		if (strcmp(label, "")){ // add label to linked list
+			cur = head;
+			while (cur->next != NULL) { // find last node
+				if (!strcmp(cur->name, label)) {
+					printf("duplicant label\n");
+					exit(1);
+				}
+				cur = cur->next;
+			}
+			if (!strcmp(cur->name, label)) {
+				printf("duplicant label\n");
+				exit(1);
+			}
+			
 			// create new branch node
 			struct branch *newNode = (struct branch*)malloc(sizeof(struct branch));
 			if(newNode == 0) {
@@ -127,8 +140,6 @@ int main(int argc, char *argv[])
 				sscanf(arg0, "%d", &regA);
 				sscanf(arg1, "%d", &regB);
 
-				// printf("arg0: %d, arg1: %d\n", regA, regB);
-
 				if (bop <= 0b011) { // lw & sw
 					offsetField = getWordOffset(arg2);
 				}
@@ -179,7 +190,7 @@ int main(int argc, char *argv[])
 		line++;
 	}
 	
-	free(head);
+	freeBranchList(head);
 	if (inFilePtr) {
 		fclose(inFilePtr);
 	}
