@@ -274,15 +274,15 @@ int getBinaryOpcode(char *opcode) {
 
 int isValidRegister(char *arg) {
 	if(!isNumber(arg)) {
-		printf("non-integer register argument");
-		return 0;
+		printf("non-integer register argument\n");
+		exit(1);
 	}
 	int regNum;
 	sscanf(arg, "%d", &regNum);
 	
 	if (regNum < 0 || regNum >= 8) {
-		printf("register outside the range");
-		return 0;
+		printf("register outside the range\n");
+		exit(1);
 	}
 
 	return 1;
