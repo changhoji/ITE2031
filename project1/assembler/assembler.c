@@ -294,13 +294,14 @@ int getWordOffset(char *offsetField) {
 	if (isNumber(offsetField)) {
 		// get numeric address value
 		sscanf(offsetField, "%d", &res);
-		if (res < -32768 || res > 32767) {
-			printf("offsetField don't fit in 16bit\n");
-			exit(1);
-		}
 	}
 	else {
 		res = findBranchAddress(offsetField);
+	}
+	
+	if (res < -32768 || res > 32767) {
+		printf("offsetField don't fit in 16bit\n");
+		exit(1);
 	}
 
 	res &= (0xffff);
@@ -313,13 +314,14 @@ int getBranchOffset(char *offsetField, int line) {
 	if (isNumber(offsetField)) {
 		// get numeric address value
 		sscanf(offsetField, "%d", &res);
-		if (res < -32768 || res > 32767) {
-			printf("offsetField don't fit in 16bit\n");
-			exit(1);
-		}
 	}
 	else {
 		res = findBranchAddress(offsetField) - (line + 1);
+	}
+
+	if (res < -32768 || res > 32767) {
+		printf("offsetField don't fit in 16bit\n");
+		exit(1);
 	}
 
 	res &= (0xffff);
