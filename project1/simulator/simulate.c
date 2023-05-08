@@ -88,6 +88,8 @@ int main(int argc, char *argv[])
                 }
                 break;
             case 0b101: // jalr
+                printf("regA: %d, regB: %d\n", regA, regB);
+                fflush(stdout);
                 state.reg[regB] = state.pc;
                 state.pc = state.reg[regA];
                 break;
@@ -100,9 +102,8 @@ int main(int argc, char *argv[])
                 printf("invalid opcode\n");
                 exit(1);
         }
-
+        
         executeCnt++;
-
         // terminate program
         if (isHalted) break;
     }
@@ -129,6 +130,7 @@ void printState(stateType *statePtr)
         printf("\t\treg[ %d ] %d\n", i, statePtr->reg[i]);
     }
     printf("end state\n");
+    fflush(stdout);
 }
 
 int convertNum(int num)
@@ -158,7 +160,7 @@ void parseField(int instruction, int *regA, int *regB, int *destReg, int* offset
             *offsetField = convertNum(instruction & 0xffff);
             break;
         case 0b101:
-            *regA = (instruction >> 19);
+            *regA = (instruction >> 19) & 0b111;
             *regB = (instruction >> 16) & 0b111;
             break;
         case 0b110:

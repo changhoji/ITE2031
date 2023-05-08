@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 				break;
 
 			default:
-				printf("invalid opcode\n");
+				printf("unrecognized opcode\n");
 				exit(1);
 		}
 
@@ -268,20 +268,20 @@ int getBinaryOpcode(char *opcode) {
 
 	if (!strcmp(opcode, ".fill")) return 0b1000;
 
-	printf("invalid opcode\n");
+	printf("unrecognized opcode\n");
 	exit(1);
 }
 
 int isValidRegister(char *arg) {
 	if(!isNumber(arg)) {
-		printf("non-number register");
+		printf("non-integer register argument");
 		return 0;
 	}
 	int regNum;
 	sscanf(arg, "%d", &regNum);
 	
 	if (regNum < 0 || regNum >= 8) {
-		printf("register outside the range [0,7]");
+		printf("register outside the range");
 		return 0;
 	}
 
@@ -294,7 +294,7 @@ int getWordOffset(char *offsetField) {
 	if (isNumber(offsetField)) {
 		// get numeric address value
 		sscanf(offsetField, "%d", &res);
-		if (res <= 0 || res > 65535) {
+		if (res < -32768 || res > 32767) {
 			printf("offsetField don't fit in 16bit\n");
 			exit(1);
 		}
@@ -303,6 +303,7 @@ int getWordOffset(char *offsetField) {
 		res = findBranchAddress(offsetField);
 	}
 
+	res &= (0xffff);
 	return res;
 }
 
@@ -312,16 +313,16 @@ int getBranchOffset(char *offsetField, int line) {
 	if (isNumber(offsetField)) {
 		// get numeric address value
 		sscanf(offsetField, "%d", &res);
-		if (res <= 0 || res > 65535) {
+		if (res < -32768 || res > 32767) {
 			printf("offsetField don't fit in 16bit\n");
 			exit(1);
 		}
 	}
 	else {
 		res = findBranchAddress(offsetField) - (line + 1);
-		res &= (0xffff);
 	}
 
+	res &= (0xffff);
 	return res;
 }
 

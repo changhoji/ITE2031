@@ -18,9 +18,9 @@ afadd   add     7       7       7       shift mcanf
         add     6       5       6       for amount--
 	beq     6	0       end  	continue if mplier shift is done
 	beq 	0	0	loop1
-end     halt
+end	halt
 mcand   .fill   32766
-mplier  .fill   12328
+mplier  .fill   32767
 pos1    .fill   1
 neg1    .fill   -1
 num15   .fill   15
