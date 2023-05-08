@@ -30,16 +30,9 @@ iloopa	add	3	2	3	i++
 	beq	0	0	oloop	go back to outer for-loop
 done	halt				terminate program
 pos1	.fill	1
-N	.fill	10
+N	.fill	3
 array	.fill	5
 	.fill	3
-	.fill	10
-	.fill	8
 	.fill	1
-	.fill	2
-	.fill	9
-	.fill	4
-	.fill	6
-	.fill	7
 temp	.fill	0
 test 	.fill	2147483647

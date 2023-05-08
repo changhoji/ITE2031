@@ -1,4 +1,4 @@
-	lw	0	2	a
+	lw	0	2	1000000000	error! offsetField don't fit in 16bit
 	lw	0	3	b
 	lw	0	7	sumAdr
 start	jalr	7	6		do add function

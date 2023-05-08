@@ -111,6 +111,7 @@ int main(int argc, char *argv[])
     printf("machine halted\n");
     printf("total of %d instructions executed\n", executeCnt);
     printf("final state of machine:\n");
+    
     printState(&state);
 
     return(0);
